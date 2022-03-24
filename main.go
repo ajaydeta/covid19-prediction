@@ -18,7 +18,7 @@ func main() {
 		log.Fatal(err)
 	}
 	df := dataframe.ReadCSV(csvfile, dataframe.HasHeader(true))
-	selected := df.Select([]string{"Confirmed", "Deaths", "Recovered"})
+	selected := df.Select([]string{"Confirmed", "Deaths", "Recovered"}).
 	var by bytes.Buffer
 	selected.WriteCSV(&by, dataframe.WriteHeader(true))
 
