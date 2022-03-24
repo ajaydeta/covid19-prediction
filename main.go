@@ -1,39 +1,43 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"log"
+	"os"
 
+	"github.com/go-gota/gota/dataframe"
 	"github.com/sjwhitworth/golearn/base"
 	"github.com/sjwhitworth/golearn/evaluation"
 	"github.com/sjwhitworth/golearn/knn"
 )
 
 func main() {
-	// Load in a dataset, with headers. Header attributes will be stored.
-	// Think of instances as a Data Frame structure in R or Pandas.
-	// You can also create instances from scratch.
-	rawData, err := base.ParseCSVToInstances("datasheet/covid_19_clean_complete.csv", true)
+	csvfile, err := os.Open("datasheet/covid_19_clean_complete.csv")
+	if err != nil {
+		log.Fatal(err)
+	}
+	df := dataframe.ReadCSV(csvfile, dataframe.HasHeader(true))
+	selected := df.Select([]string{"Confirmed", "Deaths", "Recovered"})
+	var by bytes.Buffer
+	selected.WriteCSV(&by, dataframe.WriteHeader(true))
+
+	rawData, err := base.ParseCSVToInstancesFromReader(bytes.NewReader(by.Bytes()), true)
 	if err != nil {
 		panic(err)
 	}
-
-	// Print a pleasant summary of your data.
 	fmt.Println(rawData)
 
-	//Initialises a new KNN classifier
 	cls := knn.NewKnnClassifier("euclidean", "linear", 5)
 
-	//Do a training-test split
 	trainData, testData := base.InstancesTrainTestSplit(rawData, 0.7)
 	cls.Fit(trainData)
 
-	//Calculates the Euclidean distance and returns the most popular label
 	predictions, err := cls.Predict(testData)
 	if err != nil {
 		panic(err)
 	}
 
-	// Prints precision/recall metrics
 	confusionMat, err := evaluation.GetConfusionMatrix(testData, predictions)
 	if err != nil {
 		panic(fmt.Sprintf("Unable to get confusion matrix: %s", err.Error()))
